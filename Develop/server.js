@@ -1,10 +1,11 @@
 const express= require('express');
-const path= require('path'); //is this needed??
 const fs =require('fs');
 const uuid= require('./helpers/uuid');
+const path= require('path');
 
 const PORT= process.env.PORT || 3001; //need to add process.env.PORT || for render deployment site to work correctly//
 const app= express();
+
 
 //MIDDLEWARE//
 //Allows parsse and gives req.body OBJECT
@@ -19,10 +20,20 @@ app.use(express.static('public'));
 //Remember that its ok to have the same route for two diferrent types of request!
 
 //access all the notes
-app.get('/api/notes', (req,res)=>{
-    res.json(`${req.method} request received to get notes`);
 
-    console.log(`${req.method} request received to get notes`);
+app.get('/api/notes', (req,res)=>{
+    fs.readFile('db/notes.json', 'utf-8',(err,data)=>{
+        if(err){
+            console.error('Error reading notes');
+            res.status(500).send('Error reading notes');
+            return;
+        }
+
+        const notes=JSON.parse(data);
+        res.json(notes);
+        console.log(`${req.method} request received to get notes`);
+    })
+    
 });
 //POST request to add/create a notes
 app.post('/api/notes', (req,res)=>{
@@ -48,7 +59,7 @@ app.post('/api/notes', (req,res)=>{
             res.status(500).json({error:`Error reading notes file`});
             return;//stop execution if ther is an error
            } 
-            const parsedNotes = JSON.parse(data);//parsing the content of /db/notes.json
+            const parsedNotes = JSON.parse(data);//parsing the content of /db/notes.json... (data) is content of /db/notes.json
             parsedNotes.push(newNote);//since we are pushing here we know that **parsedNotes is an array** 
             //you add newNote object to the array of existing notes found in /db/notes.json
             //remem** write file takes in data as string
@@ -78,6 +89,16 @@ app.post('/api/notes', (req,res)=>{
     }
 
 });
+app.get('/notes',(req,res)=>{
+    res.sendFile(path.join(__dirname,'./public/notes.html'))
+});
+
+//* takes us back to the homepage if client enters something like/api/apples 
+app.get ('*',(req,res)=>{
+    res.sendFile(path.join(__dirname,'./public/index.html'))
+})
+
+
 app.listen(PORT,()=>{
     console.log(`App listening on port ${PORT}`)
 });
